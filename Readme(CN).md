@@ -1,12 +1,12 @@
-# 一个关于 DOM 绘制逻辑的 demo
+# 一个关于 DOM 和 Canves 网格绘制逻辑的 demo
 
 ## 使用说明
 
-- 下载 index.html，使用浏览器打开；
-- 蓝色方框是 DOM 的 border ， 两条黑色线条是在 Canvas 上绘制的；
-- 使用 Ctrl + 鼠标滚轮的方式缩放页面，观察 DOM 的左上角是否与 Canvas 的线条完全对齐；
+- 使用浏览器打开 index.html ；
+- 蓝色方框是 DOM 的 border ， 黑色网格是在 Canvas 上绘制的；
+- 使用 Ctrl + 鼠标滚轮的方式缩放页面，观察 DOM 边界是否与 Canvas 的线条完全对齐；
 
-## 参数说明
+## 代码中参数说明
 
 ### myCanvas
 #### 构造函数
@@ -38,4 +38,4 @@
 `align`: boolean，true 表示对齐到格线外侧，false 表示对齐到格线内侧；   
 `canvasLineWidth`: number，需要对齐到 Canvas 的线条的宽度，默认 1px；
 
-[原理说明](https://kdocs.cn/l/covkZSNQCorN)
+[原理说明](https://kdocs.cn/l/cmZUmpyHx18Y)
