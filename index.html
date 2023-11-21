@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Demo</title>
+</head>
+<body>
+</body>
+</html>
+
+<script>
+    class myCanvas {
+        canvas;
+        ctx;
+        canvasTop;
+        canvasLeft;
+        canvasWidth;
+        canvasHeight;
+        scale;
+        drawSequence = [];  // 存放绘制过程用于重绘
+
+        constructor(id, parent, top, left, height, width) {
+            this.canvasTop = top;
+            this.canvasLeft = left;
+            this.canvasWidth = width;
+            this.canvasHeight = height;
+            this.canvas = document.createElement("canvas");
+            this.canvas.id = id;
+            parent.appendChild(this.canvas);
+            this.ctx = this.canvas.getContext("2d");
+
+            // 设置CSS位置与宽高
+            this.canvas.style.position = "absolute"
+            this.canvas.style.top = top + "px";
+            this.canvas.style.left = left + "px";
+            this.canvas.style.width = width + "px";
+            this.canvas.style.height = height + "px";
+            this.zoom(); // 调用一次以设置初始的canvas宽高
+        }
+
+        // 为Canvas设置缩放自适应
+        zoom() {
+            this.scale = window.devicePixelRatio;
+            this.canvas.width = Math.floor(this.canvasWidth * this.scale);
+            this.canvas.height = Math.floor(this.canvasHeight * this.scale);
+            this.ctx.scale(this.scale, this.scale);
+            this.reDraw();
+        }
+
+        // 对于线宽度侧，给一个1/2实际线宽的偏移
+        roundByWeight(canvasPosition, position, weight) {
+            const scale = this.scale;
+            return (Math.round((position + canvasPosition) * scale) + weight * scale / 2) / scale - Math.round(canvasPosition * scale) / scale;
+        }
+
+        // 重新实现Canvas画线
+        drawLineOnCanvas(top, left, length, weight, color, horizontal, isNew = true) {
+            if (isNew) this.drawSequence.push([top, left, length, weight, color, horizontal]);
+            const scale = this.scale;
+            weight = weight / scale;
+
+            if (horizontal) top = this.roundByWeight(this.canvasTop, top, weight);
+            else left = this.roundByWeight(this.canvasLeft, left, weight);
+
+            this.ctx.lineWidth = weight;
+            this.ctx.moveTo(left, top);
+            this.ctx.lineTo(horizontal ? left + length : left, horizontal ? top : top + length);
+            this.ctx.stroke();
+        }
+
+        // 在缩放Canvas后重新绘制所有内容
+        reDraw() {
+            this.drawSequence.forEach((params) => {
+                this.drawLineOnCanvas(params[0], params[1], params[2], params[3], params[4], params[5], false);
+            })
+        }
+    }
+
+    class myDom {
+        domRef;
+        scale;
+        align;
+        dimension;
+        canvasLineWidth
+
+        constructor(type, id, parent, top, left, height, width, borderWidth, align = true, canvasLineWidth = 1) {
+            this.scale = window.devicePixelRatio;
+            this.dimension = [top, left, height, width, borderWidth];
+            this.align = align;
+            this.canvasLineWidth = canvasLineWidth;
+
+            this.domRef = document.createElement(type);
+            this.domRef.id = id;
+            this.domRef.style.boxSizing = "border-box";
+
+            if (align) {
+                this.domRef.style.top = top + "px";
+                this.domRef.style.left = left + "px";
+            }
+
+            parent.appendChild(this.domRef);
+            this.zoom();
+        }
+
+        zoom() {
+            this.scale = window.devicePixelRatio;
+            const scale = this.scale;
+            const dimension = this.dimension;
+
+            // align为true对齐到canvas格线的外侧，否则对齐到内侧
+            if (this.align) {
+                this.domRef.style.height = (dimension[2] * scale + this.canvasLineWidth) / scale + "px";
+                this.domRef.style.width = (dimension[3] * scale + this.canvasLineWidth) / scale + "px";
+            } else {
+                this.domRef.style.top = (dimension[0] * scale + this.canvasLineWidth - dimension[4]) / scale + "px";
+                this.domRef.style.left = (dimension[1] * scale + this.canvasLineWidth - dimension[4]) / scale + "px";
+                this.domRef.style.height = (dimension[2] * scale - this.canvasLineWidth + dimension[4] * 2) / scale + "px";
+                this.domRef.style.width = (dimension[3] * scale - this.canvasLineWidth + dimension[4] * 2) / scale + "px";
+            }
+
+            this.domRef.style.borderWidth = dimension[4] / scale + "px";
+        }
+    }
+
+    // 设置页面缩放监听，维护两个列表存放缩放后需要重绘的canvas和dom
+    const canvasList = [];
+    const domList = [];
+    let mediaQuery = matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+    let updatePixelRatio = () => {
+        canvasList.forEach((canvas) => canvas.zoom());
+        domList.forEach((dom) => dom.zoom());
+        // 更新事件监听
+        mediaQuery.removeEventListener("change", updatePixelRatio);
+        mediaQuery = matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+        mediaQuery.addEventListener("change", updatePixelRatio);
+    }
+
+    const canvasLineWidth = 1;
+    const domLineWidth = 2;
+
+    const gridHeight = 10.68 + 1/3;
+    const gridWidth = 20.71 + 1/7;
+
+    const newCanvas = new myCanvas("canvas", document.querySelector("body"), 0, 0, 800, 800);
+    canvasList.push(newCanvas);
+    for (let i = 0; i < 800; i += gridHeight) {
+        newCanvas.drawLineOnCanvas(i, 0, 800, canvasLineWidth, "grey", true);
+    }
+    for (let i = 0; i < 800; i += gridWidth) {
+        newCanvas.drawLineOnCanvas(0, i, 800, canvasLineWidth, "grey", false);
+    }
+
+    const newDom1 = new myDom("div", "dom", document.querySelector("body"), 3 * gridHeight, 5 * gridWidth, gridHeight, gridWidth, domLineWidth, false, canvasLineWidth);
+    domList.push(newDom1);
+    const newDom2 = new myDom("div", "dom", document.querySelector("body"), 7 * gridHeight, 11 * gridWidth, 3 * gridHeight, gridWidth, domLineWidth, true, canvasLineWidth);
+    domList.push(newDom2);
+
+    // 初始化页面缩放监听
+    updatePixelRatio();
+    mediaQuery.addEventListener("change", updatePixelRatio);
+</script>
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+    }
+
+    #dom {
+        z-index: 100;
+        position: absolute;
+        border-color: royalblue;
+        border-style: solid;
+    }
+</style>
